@@ -1,0 +1,29 @@
+{
+  "models": [
+    {
+      "title": "DeepSeekCoderV2",
+      "provider": "ollama",
+      "model": "deepseek-coder-v2:latest",
+      "apiBase": "https://ollama01.iconicompany.com",
+      "apiKey": "[API KEY]"
+    }
+  ],
+  "customCommands": [
+    {
+      "name": "test",
+      "prompt": "{{{ input }}}\n\nWrite a comprehensive set of unit tests for the selected code. It should setup, run tests that check for correctness including important edge cases, and teardown. Ensure that the tests are complete and sophisticated. Give the tests just as chat output, don't edit any file.",
+      "description": "Write unit tests for highlighted code"
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "DeepSeekCoderV2",
+    "provider": "ollama",
+    "model": "deepseek-coder-v2:latest",
+    "apiBase": "https://ollama01.iconicompany.com",
+    "apiKey": "[API KEY]"
+  },
+  "allowAnonymousTelemetry": true,
+  "embeddingsProvider": {
+    "provider": "transformers.js"
+  }
+}
