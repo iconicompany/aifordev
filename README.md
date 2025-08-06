@@ -1,13 +1,20 @@
 # aifordev
 AI tools and docs for developers
 
-## Gemini
+## Gemini cli
 `npm install -g @google/gemini-cli@latest`
 
 ### TODO 
 
 - Create MCP prompt server: https://cloud.google.com/blog/topics/developers-practitioners/gemini-cli-custom-slash-commands
 - Create commands: https://github.com/google-gemini/gemini-cli/issues/3789
+
+## VSCode
+
+- Install https://marketplace.visualstudio.com/items?itemName=Google.geminicodeassist
+`ext install Google.geminicodeassist`
+- Configure proxy `https://USER:PASS@proxy.iconicompany.com:3129`
+![vscodeproxy](vscode/vscodeproxy.png)
 
 ## OLLAMA + DeepSeekCoder + VSCode + Continue.Dev
 
@@ -17,4 +24,3 @@ AI tools and docs for developers
 4. Save [config.json](continue.dev/config.json) to ~/.continue/, [see examples](https://docs.continue.dev/setup/examples)
  
   
-
