@@ -1,6 +1,12 @@
 # aifordev
 AI tools and docs for developers
 
+## Gemini
+`npm install -g @google/gemini-cli@latest`
+
+### TODO create MCP prompt server
+https://cloud.google.com/blog/topics/developers-practitioners/gemini-cli-custom-slash-commands
+
 ## OLLAMA + DeepSeekCoder + VSCode + Continue.Dev
 
 1. [Install Ollama](https://ollama.com/download) (`curl -fsSL https://ollama.com/install.sh | sh`)
