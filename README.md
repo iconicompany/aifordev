@@ -4,8 +4,10 @@ AI tools and docs for developers
 ## Gemini
 `npm install -g @google/gemini-cli@latest`
 
-### TODO create MCP prompt server
-https://cloud.google.com/blog/topics/developers-practitioners/gemini-cli-custom-slash-commands
+### TODO 
+
+Create MCP prompt server: https://cloud.google.com/blog/topics/developers-practitioners/gemini-cli-custom-slash-commands
+Create commands: https://github.com/google-gemini/gemini-cli/issues/3789
 
 ## OLLAMA + DeepSeekCoder + VSCode + Continue.Dev
 
