@@ -2,15 +2,29 @@ generate_pr() {
     local BRANCH_NAME_FROM_CLI=""
     local USE_CURRENT_BRANCH=false
 
-    # Парсинг параметров
+    ############################
+    # helpers
+    ############################
+    normalize_branch_name() {
+        local name="$1"
+
+        name=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+        name=$(echo "$name" | sed -E 's/^(feat|fix|chore|refactor|docs|test|style|perf)(\(.+\))?:?//')
+        name=$(echo "$name" | sed -E 's/[^a-z0-9]+/-/g')
+        name=$(echo "$name" | sed -E 's/^-+//; s/-+$//')
+        name=$(echo "$name" | sed -E 's/-{2,}/-/g')
+        name=$(echo "$name" | cut -c1-80)
+
+        echo "$name"
+    }
+
+    ############################
+    # args
+    ############################
     while getopts "b:c" opt; do
         case "$opt" in
-            b)
-                BRANCH_NAME_FROM_CLI="$OPTARG"
-                ;;
-            c)
-                USE_CURRENT_BRANCH=true
-                ;;
+            b) BRANCH_NAME_FROM_CLI="$OPTARG" ;;
+            c) USE_CURRENT_BRANCH=true ;;
             *)
                 echo "Usage: generate_pr [-b branch-name] [-c]"
                 return 1
@@ -23,9 +37,11 @@ generate_pr() {
         return 1
     fi
 
-    # 0. Проверка наличия gh
-    if ! command -v gh &> /dev/null; then
-        echo "Error: GitHub CLI (gh) is not installed."
+    ############################
+    # checks
+    ############################
+    if ! command -v gh &>/dev/null; then
+        echo "Error: GitHub CLI (gh) is not installed"
         return 1
     fi
 
@@ -33,18 +49,25 @@ generate_pr() {
 
     DIFF=$(git diff --cached)
     if [ -z "$DIFF" ]; then
-        echo "No staged changes found. Please stage your changes first using 'git add'"
+        echo "No staged changes found. Use 'git add' first."
         return 1
     fi
 
     echo "🤖 Analyzing changes..."
 
-    # 1. Определяем ветку
+    ############################
+    # branch logic
+    ############################
     if [ "$USE_CURRENT_BRANCH" = true ]; then
         BRANCH_NAME=$(git branch --show-current)
 
         if [ -z "$BRANCH_NAME" ]; then
-            echo "Error: could not determine current branch"
+            echo "Error: unable to detect current branch"
+            return 1
+        fi
+
+        if [ "$BRANCH_NAME" = "main" ] || [ "$BRANCH_NAME" = "master" ]; then
+            echo "Error: refusing to create PR from '$BRANCH_NAME'"
             return 1
         fi
 
@@ -52,26 +75,29 @@ generate_pr() {
 
     else
         if [ -n "$BRANCH_NAME_FROM_CLI" ]; then
-            BRANCH_NAME="$BRANCH_NAME_FROM_CLI"
-            echo "🌿 Using branch from CLI: $BRANCH_NAME"
+            RAW_BRANCH_NAME="$BRANCH_NAME_FROM_CLI"
+            echo "🌿 Using branch from CLI: $RAW_BRANCH_NAME"
         else
-            BRANCH_NAME=$(echo "$DIFF" | llm -m gemini \
+            RAW_BRANCH_NAME=$(echo "$DIFF" | llm -m gemini \
                 "Generate a short, concise git branch name using kebab-case based on these changes. Output ONLY the branch name, no markdown, no explanations.")
-
-            BRANCH_NAME=$(echo "$BRANCH_NAME" | tr -d '[:space:]"`')
-
-            if [ -z "$BRANCH_NAME" ]; then
-                echo "Failed to generate branch name"
-                return 1
-            fi
-
-            echo "🌿 Generated branch: $BRANCH_NAME"
+            echo "🤖 LLM raw branch: $RAW_BRANCH_NAME"
         fi
 
+        BRANCH_NAME=$(normalize_branch_name "$RAW_BRANCH_NAME")
+
+        if ! git check-ref-format "refs/heads/$BRANCH_NAME"; then
+            echo "⚠️ Invalid branch name after normalization: $BRANCH_NAME"
+            BRANCH_NAME="wip/$(date +%s)"
+            echo "➡️ Fallback branch: $BRANCH_NAME"
+        fi
+
+        echo "🌿 Creating branch: $BRANCH_NAME"
         git checkout -b "$BRANCH_NAME"
     fi
 
-    # 2. Коммит-месседж
+    ############################
+    # commit
+    ############################
     COMMIT_MSG=$(echo "$DIFF" | llm -m gemini \
         "Generate a concise commit message (first line) and detailed description (separated by blank line) based on these changes.")
 
@@ -80,14 +106,17 @@ generate_pr() {
         return 1
     fi
 
-    # 3. Коммит
     git commit -m "$COMMIT_MSG"
 
-    # 4. Пуш
+    ############################
+    # push
+    ############################
     echo "🚀 Pushing branch..."
     git push -u origin "$BRANCH_NAME"
 
-    # 5. PR
+    ############################
+    # PR
+    ############################
     PR_TITLE=$(echo "$COMMIT_MSG" | head -n 1)
     PR_BODY=$(echo "$COMMIT_MSG" | tail -n +3)
 
