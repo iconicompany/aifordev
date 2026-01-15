@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+
+echo "🔄 Fetching all branches..."
+git fetch --all --prune
+
+# Определяем главную ветку
+MAIN_BRANCH=""
+if git show-ref --quiet refs/heads/main; then
+    MAIN_BRANCH="main"
+elif git show-ref --quiet refs/heads/master; then
+    MAIN_BRANCH="master"
+else
+    echo "❌ Не удалось определить основную ветку (main/master)."
+    exit 1
+fi
+
+echo "➡️ Switching to $MAIN_BRANCH..."
+git checkout "$MAIN_BRANCH"
+
+echo "🧹 Removing merged local branches..."
+git branch --merged | grep -v "$MAIN_BRANCH" | xargs -r git branch -d
+
+echo "🗑 Cleaning remote tracking branches..."
+git remote prune origin
+
+echo "✅ Done! Мерженные ветки удалены."
+
