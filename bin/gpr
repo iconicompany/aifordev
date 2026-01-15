@@ -1,14 +1,37 @@
 generate_pr() {
-    # 0. Проверка наличия gh (GitHub CLI)
+    local BRANCH_NAME_FROM_CLI=""
+    local USE_CURRENT_BRANCH=false
+
+    # Парсинг параметров
+    while getopts "b:c" opt; do
+        case "$opt" in
+            b)
+                BRANCH_NAME_FROM_CLI="$OPTARG"
+                ;;
+            c)
+                USE_CURRENT_BRANCH=true
+                ;;
+            *)
+                echo "Usage: generate_pr [-b branch-name] [-c]"
+                return 1
+                ;;
+        esac
+    done
+
+    if [ -n "$BRANCH_NAME_FROM_CLI" ] && [ "$USE_CURRENT_BRANCH" = true ]; then
+        echo "Error: -b and -c cannot be used together"
+        return 1
+    fi
+
+    # 0. Проверка наличия gh
     if ! command -v gh &> /dev/null; then
-        echo "Error: GitHub CLI (gh) is not installed. Please install it to create PRs."
+        echo "Error: GitHub CLI (gh) is not installed."
         return 1
     fi
 
     git add .
-    # Получаем изменения
-    DIFF=$(git diff --cached)
 
+    DIFF=$(git diff --cached)
     if [ -z "$DIFF" ]; then
         echo "No staged changes found. Please stage your changes first using 'git add'"
         return 1
@@ -16,37 +39,55 @@ generate_pr() {
 
     echo "🤖 Analyzing changes..."
 
-    # 1. Генерируем имя ветки (kebab-case)
-    BRANCH_NAME=$(echo "$DIFF" | llm -m gemini "Generate a short, concise git branch name using kebab-case based on these changes. Output ONLY the branch name, no markdown, no explanations.")
-    
-    # Очистка имени ветки от возможных пробелов или кавычек
-    BRANCH_NAME=$(echo "$BRANCH_NAME" | tr -d '[:space:]"`')
+    # 1. Определяем ветку
+    if [ "$USE_CURRENT_BRANCH" = true ]; then
+        BRANCH_NAME=$(git branch --show-current)
 
-    if [ -z "$BRANCH_NAME" ]; then
-        echo "Failed to generate branch message"
-        return 1
+        if [ -z "$BRANCH_NAME" ]; then
+            echo "Error: could not determine current branch"
+            return 1
+        fi
+
+        echo "🌿 Using current branch: $BRANCH_NAME"
+
+    else
+        if [ -n "$BRANCH_NAME_FROM_CLI" ]; then
+            BRANCH_NAME="$BRANCH_NAME_FROM_CLI"
+            echo "🌿 Using branch from CLI: $BRANCH_NAME"
+        else
+            BRANCH_NAME=$(echo "$DIFF" | llm -m gemini \
+                "Generate a short, concise git branch name using kebab-case based on these changes. Output ONLY the branch name, no markdown, no explanations.")
+
+            BRANCH_NAME=$(echo "$BRANCH_NAME" | tr -d '[:space:]"`')
+
+            if [ -z "$BRANCH_NAME" ]; then
+                echo "Failed to generate branch name"
+                return 1
+            fi
+
+            echo "🌿 Generated branch: $BRANCH_NAME"
+        fi
+
+        git checkout -b "$BRANCH_NAME"
     fi
 
-    echo "🌿 Creating branch: $BRANCH_NAME"
-    git checkout -b "$BRANCH_NAME"
-
-    # 2. Генерируем сообщение коммита
-    COMMIT_MSG=$(echo "$DIFF" | llm -m gemini "Generate a concise commit message (first line) and detailed description (separated by blank line) based on these changes.")
+    # 2. Коммит-месседж
+    COMMIT_MSG=$(echo "$DIFF" | llm -m gemini \
+        "Generate a concise commit message (first line) and detailed description (separated by blank line) based on these changes.")
 
     if [ -z "$COMMIT_MSG" ]; then
         echo "Failed to generate commit message"
         return 1
     fi
 
-    # 3. Делаем коммит
+    # 3. Коммит
     git commit -m "$COMMIT_MSG"
 
-    # 4. Пушим ветку
+    # 4. Пуш
     echo "🚀 Pushing branch..."
     git push -u origin "$BRANCH_NAME"
 
-    # 5. Создаем PR
-    # Используем первую строку коммита как заголовок, остальное как тело
+    # 5. PR
     PR_TITLE=$(echo "$COMMIT_MSG" | head -n 1)
     PR_BODY=$(echo "$COMMIT_MSG" | tail -n +3)
 

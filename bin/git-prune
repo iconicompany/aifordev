@@ -16,14 +16,29 @@ else
     exit 1
 fi
 
-echo "➡️ Switching to $MAIN_BRANCH..."
+echo "➡ Switching to $MAIN_BRANCH..."
 git checkout "$MAIN_BRANCH"
 
-echo "🧹 Removing merged local branches..."
-git branch --merged | grep -v "$MAIN_BRANCH" | xargs -r git branch -d
+echo "📋 Мерженные локальные ветки:"
+MERGED_BRANCHES=$(git branch --merged | grep -v "$MAIN_BRANCH" || true)
+
+if [[ -z "$MERGED_BRANCHES" ]]; then
+    echo "ℹ️ Нет мерженных веток для удаления."
+else
+    echo "$MERGED_BRANCHES"
+    echo
+    read -r -p "❓ Удалить эти ветки? Введите 'yes' для подтверждения: " CONFIRM
+
+    if [[ "$CONFIRM" == "yes" ]]; then
+        echo "🧹 Removing merged local branches..."
+        echo "$MERGED_BRANCHES" | xargs -r git branch -d
+    else
+        echo "🚫 Удаление отменено."
+    fi
+fi
 
 echo "🗑 Cleaning remote tracking branches..."
 git remote prune origin
 
-echo "✅ Done! Мерженные ветки удалены."
+echo "✅ Done!"
 
