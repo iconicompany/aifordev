@@ -10,7 +10,7 @@ generate_commit() {
     fi
     
     # Generate commit message using LLM
-    COMMIT_MSG=$(echo "$DIFF" | llm -m gemini "Generate a concise commit message (first line) and detailed description (separated by blank line) based on these changes. Follow conventional commits format. Git diff: ")
+    COMMIT_MSG=$(echo "$DIFF" | llm -m gemini -x "Generate a concise commit message (first line) and detailed description (separated by blank line) based on these changes. Follow conventional commits format. Git diff: ")
     
     if [ -z "$COMMIT_MSG" ]; then
         echo "Failed to generate commit message"

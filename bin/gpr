@@ -55,7 +55,7 @@ generate_pr() {
             BRANCH_NAME="$BRANCH_NAME_FROM_CLI"
             echo "🌿 Using branch from CLI: $BRANCH_NAME"
         else
-            BRANCH_NAME=$(echo "$DIFF" | llm -m gemini \
+            BRANCH_NAME=$(echo "$DIFF" | llm -x -m gemma \
                 "Generate a short, concise git branch name using kebab-case based on these changes. Output ONLY the branch name, no markdown, no explanations.")
 
             BRANCH_NAME=$(echo "$BRANCH_NAME" | tr -d '[:space:]"`')
@@ -72,7 +72,7 @@ generate_pr() {
     fi
 
     # 2. Коммит-месседж
-    COMMIT_MSG=$(echo "$DIFF" | llm -m gemini \
+    COMMIT_MSG=$(echo "$DIFF" | llm -x -m gemma \
         "Generate a concise commit message (first line) and detailed description (separated by blank line) based on these changes.")
 
     if [ -z "$COMMIT_MSG" ]; then
