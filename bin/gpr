@@ -1,4 +1,6 @@
 generate_pr() {
+    # Сброс индекса параметров для getopts внутри функции — это критично!
+    local OPTIND
     local BRANCH_NAME_FROM_CLI=""
     local USE_CURRENT_BRANCH=false
 
@@ -17,6 +19,9 @@ generate_pr() {
                 ;;
         esac
     done
+
+    # Сдвигаем аргументы, чтобы убрать обработанные флаги (опционально, но полезно)
+    shift $((OPTIND - 1))
 
     if [ -n "$BRANCH_NAME_FROM_CLI" ] && [ "$USE_CURRENT_BRANCH" = true ]; then
         echo "Error: -b and -c cannot be used together"
@@ -68,7 +73,13 @@ generate_pr() {
             echo "🌿 Generated branch: $BRANCH_NAME"
         fi
 
-        git checkout -b "$BRANCH_NAME"
+        # Проверяем, существует ли ветка, чтобы не упасть при попытке создать дубликат
+        if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME"; then
+            echo "🌿 Branch $BRANCH_NAME already exists. Switching to it..."
+            git checkout "$BRANCH_NAME"
+        else
+            git checkout -b "$BRANCH_NAME"
+        fi
     fi
 
     # 2. Коммит-месседж

@@ -11,7 +11,7 @@ generate_commit() {
     
     #echo "$DIFF" | python3 -c "import sys; print(sys.stdin.read(8000))"
     # Generate commit message using LLM
-    COMMIT_MSG=$(echo "$DIFF" |llm -m nemotron -x "Generate a concise commit message (first line) and detailed description (separated by blank line) based on these changes. Follow conventional commits format. Git diff: ")
+    COMMIT_MSG=$(echo "$DIFF" |llm -m gemma -x "Generate a concise commit message (first line) and detailed description (separated by blank line) based on these changes. Follow conventional commits format. Git diff: ")
     
     if [ -z "$COMMIT_MSG" ]; then
         echo "Failed to generate commit message"
